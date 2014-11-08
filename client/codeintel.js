@@ -20,10 +20,30 @@ dayside.codeintel = dayside.plugins.codeintel = $.Class.extend({
             'JavaScript': "~`!#%^&*()-=+{}[]|\\;:'\",.<>?/",
         }
         
+        dayside.core.bind("configDefaults",function(b,e){
+            e.value.codeintel_enable = false;
+        });
+
+        dayside.core.bind("configUpdate",function(b,e){
+            if (e.value.codeintel_enable) {
+                if (!me.client) me.connect();
+            } else {
+                if (me.client) me.disconnect();
+            }
+        });
+
+        dayside.core.bind("configTabsCreated",function(b,e){
+            var configTab = teacss.ui.panel({
+                label: "Codeintel", padding: "1em"
+            }).push(
+                ui.check({ label: "Codeintel enable", name: "codeintel_enable" })
+            );
+            e.tabs.addTab(configTab);
+        });        
+        
         dayside.ready(function(){
             FileApi.request('real_path',{path:FileApi.root},true,function(res){
                 me.root = res.data.path;
-                me.connect();
             });
             
             dayside.editor.bind("editorOptions",function(b,e){
@@ -86,6 +106,7 @@ dayside.codeintel = dayside.plugins.codeintel = $.Class.extend({
     request_complete: function (cm,tab,lang) {
         if (!lang) return;
         if (cm.completionBusy) return;
+        if (!this.connected) return;
         
         this.last_cm = tab.editor;
         this.last_request = {
@@ -142,6 +163,15 @@ dayside.codeintel = dayside.plugins.codeintel = $.Class.extend({
                 }
             }
         });
+    },
+    
+    disconnect: function () {
+        if (this.client && this.connected) {
+            this.client.ws.close();
+            this.connected = false;
+            this.client = false;
+            console.debug("codeintel disconnected");
+        }
     },
     
     showCalltip: function (cm,pos,text) {
