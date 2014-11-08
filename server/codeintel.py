@@ -223,31 +223,24 @@ def set_status(view, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', lo
     if msg is None:
         msg, ltype = ltype, 'debug'
     msg = msg.strip()
-
-    status_msg.setdefault(lid, [None, None, 0])
-    if msg == status_msg[lid][1]:
-        return
-    status_msg[lid][2] += 1
-    order = status_msg[lid][2]
     
-    def _set_status():
-        current_type, current_msg, current_order = status_msg.get(lid, [None, None, 0])
-        if msg != current_msg and order == current_order:
+    status_msg.setdefault(lid, [None, None, 0])
+    
+    current_type, current_msg, current_order = status_msg.get(lid, [None, None, 0])
+    
+    msg = msg or ''
+    current_msg = current_msg or ''
+    
+    if msg != current_msg:
+        if msg:
             print("+", "%s: %s" % (ltype.capitalize(), msg), file=condeintel_log_file)
             (logger or log.info)(msg)
             if ltype != 'debug':
                 view.set_status(lid, "%s: %s" % (ltype.capitalize(), msg),timeout)
-                status_msg[lid] = [ltype, msg, order]
-
-    def _erase_status():
-        if msg == status_msg.get(lid, [None, None, 0])[1]:
+                status_msg[lid] = [ltype, msg, 0]
+        else:
             view.erase_status(lid)
             status_msg[lid][1] = None
-
-    if msg:
-        _set_status()
-    else:
-        _erase_status()
 
 
 def logger(view, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel'):
@@ -351,7 +344,7 @@ def codeintel_callbacks(force=False):
         
     # saving and culling cached parts of the database:
     for folders_id in _ci_mgr_.keys():
-        mgr = codeintel_manager(folders_id)
+        mgr = codeintel_manager(folders_id,None)
         now = time.time()
         if now >= _ci_next_savedb_ or force:
             if _ci_next_savedb_:
@@ -373,8 +366,8 @@ def codeintel_cleanup(id):
         del _ci_next_scan_[id]
 
 
-def codeintel_manager(folders_id):
-    folders_id = None
+def codeintel_manager(folders_id,root):
+    # folders_id = None
     global _ci_mgr_, condeintel_log_filename, condeintel_log_file
     mgr = _ci_mgr_.get(folders_id)
     if mgr is None:
@@ -384,7 +377,7 @@ def codeintel_manager(folders_id):
                 
         mgr = Manager(
             extra_module_dirs=None,
-            db_base_dir=os.path.join(os.path.realpath(os.path.join(os.path.dirname(__file__),"..")),".codeintel"),
+            db_base_dir=os.path.join(root,".codeintel"),
             db_catalog_dirs=[],
             db_import_everything_langs=None,
         )
@@ -429,7 +422,7 @@ def codeintel_scan(view, path, content, lang, callback=None, pos=None, forms=Non
         catalogs = []
         now = time.time()
 
-        mgr = codeintel_manager(folders_id)
+        mgr = codeintel_manager(folders_id,view.root())
         mgr.db.event_reporter = lambda m: logger(view, 'event', m)
         
         try:

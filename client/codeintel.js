@@ -22,6 +22,7 @@ dayside.codeintel = dayside.plugins.codeintel = $.Class.extend({
         
         dayside.core.bind("configDefaults",function(b,e){
             e.value.codeintel_enable = false;
+            e.value.codeintel_live = true;
         });
 
         dayside.core.bind("configUpdate",function(b,e){
@@ -30,13 +31,16 @@ dayside.codeintel = dayside.plugins.codeintel = $.Class.extend({
             } else {
                 if (me.client) me.disconnect();
             }
+            me.live_completion = e.value.codeintel_live;
         });
 
         dayside.core.bind("configTabsCreated",function(b,e){
             var configTab = teacss.ui.panel({
-                label: "Codeintel", padding: "1em"
+                label: "Autocomplete", padding: "1em"
             }).push(
-                ui.check({ label: "Codeintel enable", name: "codeintel_enable" })
+                ui.label({ value: "Codeintel options:", margin: "5px 0" }),
+                ui.check({ label: "Autocomplete enabled", name: "codeintel_enable", width: "100%", margin: "5px 0" }),
+                ui.check({ label: "Live completion", name: "codeintel_live", width: "100%", margin: "5px 0 0" })
             );
             e.tabs.addTab(configTab);
         });        
@@ -68,6 +72,7 @@ dayside.codeintel = dayside.plugins.codeintel = $.Class.extend({
                 
                 e.tab.editor.on("change", function(cm,co) {
                     if (!me.connected) return;
+                    if (!me.live_completion) return;
                     
                     var lang = me.getLang(e.tab);
                     var timeout = 600;
@@ -160,6 +165,9 @@ dayside.codeintel = dayside.plugins.codeintel = $.Class.extend({
                             me.showCalltip(cm,pos,data.calltips[0]);
                         }
                     }
+                }
+                if (data.type=="status") {
+                    dayside.editor.setStatus(data.message,data.timeout);
                 }
             }
         });
