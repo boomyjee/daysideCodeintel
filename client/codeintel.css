@@ -1,0 +1,62 @@
+.CodeMirror .codeintel-calltip {
+    background: white;
+    border: 1px solid #eee;
+    box-shadow: 2px 2px 2px rgba(0,0,0,0.1);
+    padding: 5px;
+    display: block;
+    white-space: pre-wrap;
+    z-index:100;
+}
+
+.codeintel-hint {
+  padding-left: 22px;
+  position: relative;
+}
+.codeintel-hint:before {
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  height: 15px;
+  width: 15px;
+  line-height: 16px;
+  text-align: center;
+  color: white;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+    
+  content: "?";
+  background: #4bb;
+}
+
+.codeintel-hint-variable:before {
+  content: "V";
+  background: #77c;
+}
+
+.codeintel-hint-object:before {
+  content: "O";
+  background: #77c;
+}
+.codeintel-hint-function:before {
+  content: "F";
+  background: #7c7;
+}
+.codeintel-hint-array:before {
+  content: "A";
+  background: #c66;
+}
+.codeintel-hint-number:before {
+  content: "1";
+  background: #999;
+}
+.codeintel-hint-string:before {
+  content: "S";
+  background: #999;
+}
+.codeintel-hint-bool:before {
+  content: "B";
+  background: #999;
+}
