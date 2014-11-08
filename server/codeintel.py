@@ -60,11 +60,11 @@ CODEINTEL_HOME_DIR = os.path.expanduser(os.path.join('~', '.codeintel'))
 __file__ = os.path.normpath(os.path.abspath(__file__))
 __path__ = os.path.dirname(__file__)
 
-libs_path = os.path.join(__path__, 'SublimeCodeintel','libs')
+libs_path = os.path.join(__path__, 'SublimeCodeIntel','libs')
 if libs_path not in sys.path:
     sys.path.insert(0, libs_path)
 
-arch_path = os.path.join(__path__, 'SublimeCodeintel','arch')
+arch_path = os.path.join(__path__, 'SublimeCodeIntel','arch')
 if arch_path not in sys.path:
     sys.path.insert(0, arch_path)
     
