@@ -23,6 +23,18 @@ class View(codeintel.View):
         }
         self.socket.sendMessage(json.dumps(msg))
         
+    def on_goto_definition(self,defn):
+        path = defn.path
+        line = defn.line
+        url = self.data['root_url'] + path[len(self.data['root']):]
+        msg = {
+            "type":"goto",
+            "id":self.data["id"],
+            "url":url,
+            "line":line
+        }
+        self.socket.sendMessage(json.dumps(msg))        
+        
     def set_status(self,lid,msg,timeout):
         msg = {
             "type":"status",
@@ -45,7 +57,11 @@ class Autocomplete(WebSocket):
         view.data = data
         
         global dayside_codeintel
-        dayside_codeintel.complete(view)
+        
+        if data['goto']:
+            dayside_codeintel.goto_definition(view)
+        else:
+            dayside_codeintel.complete(view)
 
     def handleMessage(self):
         if self.data is None:

@@ -832,6 +832,9 @@ class View:
     
     def on_complete(self,cplns,calltips,original_pos):
         pass
+    
+    def on_goto_definition(self,defn):
+        pass
         
     def set_status(self,lid,msg,timeout):
         pass
@@ -843,6 +846,40 @@ active_codeintel_thread = __active_codeintel_thread
 class DaysideCodeIntel:
     def start(self):
         active_codeintel_thread.start()
+        
+    def goto_definition(self,view):
+        path = view.file_name()
+        lang = view.lang()
+        
+        view_sel = view.sel()
+        if not view_sel:
+            return
+        sel = view_sel[0]
+        pos = sel.end()
+        content = view.content()
+        file_name = view.file_name()
+
+        def _trigger(trg_pos,defns):
+            if defns is not None:
+                defn = defns[0]
+                if defn.name and defn.doc:
+                    msg = "%s: %s" % (defn.name, defn.doc)
+                    logger(view, 'info', msg, timeout=3000)
+
+                if defn.path and defn.line:
+                    if defn.line != 1 or defn.path != file_name:
+                        path = defn.path + ':' + str(defn.line)
+                        msg = 'Jumping to: %s' % path
+                        log.debug(msg)
+                        codeintel_log.debug(msg)
+                        view.on_goto_definition(defn);
+                        
+                elif defn.name:
+                    msg = 'Cannot find jumping point to: %s' % defn.name
+                    log.debug(msg)
+                    codeintel_log.debug(msg)
+
+        codeintel(view, path, content, lang, pos, ('defns',), _trigger)        
         
     def complete(self, view):
         if not view.settings().get('codeintel_live', True):

@@ -54,15 +54,25 @@ dayside.codeintel = dayside.plugins.codeintel = $.Class.extend({
                 e.options.extraKeys["Ctrl-Space"] = function (cm) {
                     if (!me.connected) return;
                     clearTimeout(me.changeTimeout);
-                    me.request_complete(cm,e.tab,me.getLang(e.tab));
+                    me.request(cm,e.tab,me.getLang(e.tab));
                 }
             });
             
             dayside.editor.bind("editorCreated",function(b,e){
-                
                 e.tab.editor.addKeyMap({
                     Esc: function (cm) {
                         if (cm.hideCalltip) cm.hideCalltip();
+                    }
+                });
+                
+                e.tab.editor.on("mousedown",function(cm,mouse_e){
+                    if (!me.connected) return;
+                    if (mouse_e.altKey) {
+                        setTimeout(function(){
+                            var cursor = cm.getCursor();
+                            clearTimeout(me.changeTimeout);
+                            me.request(cm,e.tab,me.getLang(e.tab),true);
+                        },1);
                     }
                 });
                 
@@ -89,10 +99,10 @@ dayside.codeintel = dayside.plugins.codeintel = $.Class.extend({
                     clearTimeout(me.changeTimeout);
                     if (timeout) {
                         me.changeTimeout = setTimeout(function(){
-                            me.request_complete(cm,e.tab,lang);
+                            me.request(cm,e.tab,lang);
                         },timeout);
                     } else {
-                        me.request_complete(cm,e.tab,lang);
+                        me.request(cm,e.tab,lang);
                     }
                 });
             });
@@ -108,13 +118,14 @@ dayside.codeintel = dayside.plugins.codeintel = $.Class.extend({
         return lang;
     },
     
-    request_complete: function (cm,tab,lang) {
+    request: function (cm,tab,lang,goto) {
         if (!lang) return;
         if (cm.completionBusy) return;
         if (!this.connected) return;
         
         this.last_cm = tab.editor;
         this.last_request = {
+            goto: goto,
             lang: lang,
             id: this.id_counter++,
             root: this.root,
@@ -166,7 +177,26 @@ dayside.codeintel = dayside.plugins.codeintel = $.Class.extend({
                         }
                     }
                 }
-                if (data.type=="status") {
+                else if (data.type=="goto") {
+                    if (me.last_request && me.last_request.id == data.id) {
+                        var tab = dayside.editor.selectFile(data.url);
+                        
+                        function positionCursor() {
+                            tab.editor.focus();
+                            tab.editor.setCursor({line:data.line-1,ch:0},{scroll:true});
+                        }
+                        
+                        if (tab.editor) {
+                            positionCursor();
+                        } else {
+                            tab.bind("editorCreated",function(){
+                                positionCursor();
+                                tab.saveState();
+                            });
+                        }
+                    }
+                }
+                else if (data.type=="status") {
                     dayside.editor.setStatus(data.message,data.timeout);
                 }
             }
