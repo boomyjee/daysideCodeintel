@@ -152,9 +152,14 @@ def codeintel_manager(folders_id,root):
 
 
 def codeintel_scan(view, path, content, lang, callback=None, pos=None, forms=None):
+    
     global despair
+    folders = getattr(view.window(), 'folders', lambda: [])()  # FIXME: it's like this for backward compatibility (<= 2060)
+    folders_id = str(hash(frozenset(folders)))
+    scanning_thread_name = "scanning_thread_"+folders_id
+    
     for thread in threading.enumerate():
-        if thread.isAlive() and thread.name == "scanning thread":
+        if thread.isAlive() and thread.name == scanning_thread_name:
             logger(view, 'info', "Updating indexes... The first time this can take a while. Do not despair!", timeout=20000, delay=despair)
             despair = 0
             return
@@ -162,8 +167,6 @@ def codeintel_scan(view, path, content, lang, callback=None, pos=None, forms=Non
     is_scratch = view.is_scratch()
     is_dirty = view.is_dirty()
     vid = view.id()
-    folders = getattr(view.window(), 'folders', lambda: [])()  # FIXME: it's like this for backward compatibility (<= 2060)
-    folders_id = str(hash(frozenset(folders)))
     view_settings = view.settings()
     codeintel_config = view_settings.get('codeintel_config', {})
     _codeintel_max_recursive_dir_depth = view_settings.get('codeintel_max_recursive_dir_depth', 10)
@@ -176,6 +179,8 @@ def codeintel_scan(view, path, content, lang, callback=None, pos=None, forms=Non
         mtime = None
         catalogs = []
         now = time.time()
+        
+        time.sleep(5);
 
         mgr = codeintel_manager(folders_id,view.root())
         mgr.db.event_reporter = lambda m: logger(view, 'event', m)
@@ -325,7 +330,7 @@ def codeintel_scan(view, path, content, lang, callback=None, pos=None, forms=Non
             callback(buf, msgs)
         else:
             logger(view, 'info', "")
-    threading.Thread(target=_codeintel_scan, name="scanning thread").start()
+    threading.Thread(target=_codeintel_scan, name=scanning_thread_name).start()
 
 
 def codeintel(view, path, content, lang, pos, forms, callback=None, timeout=7000):

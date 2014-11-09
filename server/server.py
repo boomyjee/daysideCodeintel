@@ -13,6 +13,9 @@ from SimpleWebSocketServer import WebSocket, SimpleWebSocketServer
 from codeintel import DaysideCodeIntel
 
 class Autocomplete(WebSocket):
+    
+    params = ""
+    
     def handleMessage(self):
         if self.data is None:
             return
@@ -75,7 +78,9 @@ class Autocomplete(WebSocket):
             ret = subprocess.check_output(["php",script,Autocomplete.params,self.request.headers["Cookie"]]);
         except subprocess.CalledProcessError as e:
             ret = 'failure'
-        
+        except:
+            print traceback.format_exc()
+            
         if ret=='ok':
             return True
         else:
