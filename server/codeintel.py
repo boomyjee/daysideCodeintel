@@ -180,8 +180,6 @@ def codeintel_scan(view, path, content, lang, callback=None, pos=None, forms=Non
         catalogs = []
         now = time.time()
         
-        time.sleep(5);
-
         mgr = codeintel_manager(folders_id,view.root())
         mgr.db.event_reporter = lambda m: logger(view, 'event', m)
         
