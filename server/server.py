@@ -12,62 +12,53 @@ import json, os, sys, subprocess, time, codeintel, traceback
 from SimpleWebSocketServer import WebSocket, SimpleWebSocketServer
 from codeintel import DaysideCodeIntel
 
-class View(codeintel.View):
-    def on_complete(self,cplns,calltips,original_pos):
-        msg = {
-            "type":"complete",
-            "id":self.data["id"],
-            "completions":cplns,
-            "calltips":calltips,
-            "pos":original_pos
-        }
-        self.socket.sendMessage(json.dumps(msg))
-        
-    def on_goto_definition(self,defn):
-        path = defn.path
-        line = defn.line
-        url = self.data['root_url'] + path[len(self.data['root']):]
-        msg = {
-            "type":"goto",
-            "id":self.data["id"],
-            "url":url,
-            "line":line
-        }
-        self.socket.sendMessage(json.dumps(msg))        
-        
-    def set_status(self,lid,msg,timeout):
-        msg = {
-            "type":"status",
-            "id":self.data["id"],
-            "message":msg,
-            "timeout":timeout
-        }
-        self.socket.sendMessage(json.dumps(msg))        
-        
 class Autocomplete(WebSocket):
-    def complete(self,data):
+    def handleMessage(self):
+        if self.data is None:
+            return
+        data = json.loads(str(self.data))
+        
         lang = data['lang']
         root = os.path.realpath(data['root'])
         path = os.path.join(root,data['url'][len(data['root_url']):])
         content = data['content']
         pos = data['pos']
         
-        view = View(path,lang,pos,content,root)
-        view.socket = self
-        view.data = data
+        def _status_callback(lid,msg,timeout):
+            msg = {
+                "type":"status",
+                "id":data["id"],
+                "message":msg,
+                "timeout":timeout
+            }
+            self.sendMessage(json.dumps(msg))
+        view = codeintel.View(path,lang,pos,content,root,_status_callback)
         
         global dayside_codeintel
-        
-        if data['goto']:
-            dayside_codeintel.goto_definition(view)
+        if 'goto' in data:
+            def _definition_callback(defn):
+                path = defn.path
+                line = defn.line
+                url = data['root_url'] + path[len(data['root']):]
+                msg = {
+                    "type":"goto",
+                    "id":data["id"],
+                    "url":url,
+                    "line":line
+                }
+                self.sendMessage(json.dumps(msg))        
+            dayside_codeintel.goto_definition(view,_definition_callback)
         else:
-            dayside_codeintel.complete(view)
-
-    def handleMessage(self):
-        if self.data is None:
-            return
-        data = json.loads(str(self.data))
-        self.complete(data)
+            def _complete_callback(cplns,calltips,trg_pos):
+                msg = {
+                    "type":"complete",
+                    "id":data["id"],
+                    "completions":cplns,
+                    "calltips":calltips,
+                    "pos":trg_pos
+                }
+                self.sendMessage(json.dumps(msg))                
+            dayside_codeintel.complete(view,_complete_callback)
 
     def handleConnected(self):
         if self.auth():
@@ -97,9 +88,7 @@ class MyDaemon(Daemon):
             global dayside_codeintel
             if len(sys.argv) >= 3:
                 Autocomplete.params = sys.argv[2]
-                
             try:
-                dayside_codeintel.start()
                 server = SimpleWebSocketServer('', 8000, Autocomplete)
                 server.serveforever()
             except:
