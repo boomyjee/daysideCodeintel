@@ -2,7 +2,7 @@
     
 dayside.codeintel = dayside.plugins.codeintel = $.Class.extend({
     init: function (o) {
-        this.options = $.extend({},o);
+        this.options = $.extend({port:8000},o);
         this.Class.instance = this;
         
         var me = this;
@@ -248,7 +248,7 @@ dayside.codeintel = dayside.plugins.codeintel = $.Class.extend({
             me.serverStarted = true;
             $.ajax({
                 url: FileApi.ajax_url,
-                data: {_type:"codeintel_start"},
+                data: {_type:"codeintel_start",port:me.options.port},
                 async: false,
                 type: "POST",
                 success: function (answer) {
@@ -267,7 +267,7 @@ dayside.codeintel.client = $.Class.extend({
         this.options = o;
         var url = teacss.path.absolute(FileApi.ajax_url);
         url = url.split("/");
-        this.socket_url = "ws://"+url[2]+":8000";
+        this.socket_url = "ws://"+url[2]+":"+dayside.codeintel.instance.options.port;
         this.createSocket();
     },
     

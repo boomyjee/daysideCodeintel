@@ -85,7 +85,11 @@ class Autocomplete(WebSocket):
             return True
         else:
             return False
-           
+
+
+params = sys.argv[2] if len(sys.argv) >= 3 else ""
+params = json.loads(params) if params else {}
+port = params['port'] if 'port' in params else 8000
 
 dayside_codeintel = DaysideCodeIntel();
 class MyDaemon(Daemon):
@@ -94,14 +98,14 @@ class MyDaemon(Daemon):
             if len(sys.argv) >= 3:
                 Autocomplete.params = sys.argv[2]
             try:
-                server = SimpleWebSocketServer('', 8000, Autocomplete)
+                server = SimpleWebSocketServer('', port, Autocomplete)
                 server.serveforever()
             except:
                 print traceback.format_exc()
                 os._exit(1);
             
 if __name__ == "__main__":
-        daemon = MyDaemon('/tmp/codeintel-dayside.pid')
+        daemon = MyDaemon('/tmp/codeintel-dayside-'+`port`+'.pid')
         if len(sys.argv) >= 2:
                 if 'start' == sys.argv[1]:
                         daemon.start()
